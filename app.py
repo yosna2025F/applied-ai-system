@@ -225,14 +225,21 @@ if st.button("Generate schedule"):
         # and show the human-readable plan.
         scheduler = Scheduler(owner)
 
-        # Warn about tasks that want the same time slot before showing the plan.
-        conflicts = scheduler.detect_conflicts()
+        # Warn about overlapping tasks before showing the plan, noting whether
+        # it's one pet double-booked or the owner needed by two pets at once.
+        conflicts = scheduler.classify_conflicts()
         if conflicts:
             st.warning("Time-slot conflicts (overlapping times):")
-            for first, second in conflicts:
+            for first, second, same_pet in conflicts:
+                first_pet = first.pet.name if first.pet else "?"
+                second_pet = second.pet.name if second.pet else "?"
+                if same_pet:
+                    reason = f"{first_pet} is double-booked"
+                else:
+                    reason = f"you're needed by {first_pet} and {second_pet} at once"
                 st.write(
                     f"- {first.name} ({first.preferred_time}) overlaps "
-                    f"{second.name} ({second.preferred_time})"
+                    f"{second.name} ({second.preferred_time}) — {reason}"
                 )
 
         scheduler.generate_plan()

@@ -35,6 +35,10 @@ def build_demo() -> Owner:
                        preferred_time="12:00", recurring="daily"))
     luna.add_task(Task("Litter cleanup", 10, priority=2,
                        preferred_time="09:00"))
+    # Same-time clash on purpose: this 08:30 feeding collides with Mochi's
+    # 08:30 Breakfast, so the scheduler should flag a conflict.
+    luna.add_task(Task("Feeding", 10, priority=2,
+                       preferred_time="08:30"))
 
     # Pre-complete one task so the completion filter has something to show.
     for task in luna.get_tasks():
@@ -76,7 +80,15 @@ def main() -> None:
     print("  Completed:", ", ".join(t.name for t in completed) or "(none)")
     print("  Pending:  ", ", ".join(t.name for t in pending) or "(none)")
 
-    # 4. The full plan (already prints chronologically via sort_by_time).
+    # 4. Conflict detection: warn (don't crash) about tasks at the same time.
+    print()
+    print("=" * 40)
+    print("Conflict check")
+    print("=" * 40)
+    warning = scheduler.conflict_warning()
+    print(warning if warning else "No conflicts — all clear.")
+
+    # 5. The full plan (already prints chronologically via sort_by_time).
     print()
     print("=" * 40)
     print("Today's Schedule")

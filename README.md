@@ -77,14 +77,16 @@ Sample test output:
 
 ## 📐 Smarter Scheduling
 
-> Fill in once you've implemented scheduling logic.
+All scheduling logic lives in `pawpal_system.py` (the `Scheduler` and `Task`
+classes). Each feature and the method(s) that implement it:
 
 | Feature | Method(s) | Notes |
 |---------|-----------|-------|
-| Task sorting | | e.g., by priority, duration |
-| Filtering | | e.g., skip tasks if time runs out |
-| Conflict handling | | e.g., overlapping time slots |
-| Recurring tasks | | e.g., daily vs. weekly |
+| Task sorting | `Scheduler.sort_tasks()`, `Scheduler.sort_by_time()` | Priority order for selection; clock order for display |
+| Filtering | `Scheduler.filter_tasks()`, `Scheduler._collect_tasks()` | By pet name and/or completion status; plan skips completed tasks |
+| Conflict detection | `Scheduler.detect_conflicts()`, `Scheduler.classify_conflicts()`, `Scheduler.conflict_warning()`, `Scheduler._overlaps()` | Duration-aware overlap; same-pet vs. cross-pet; crash-safe warning |
+| Recurring tasks | `Task.mark_complete()`, `Task._next_instance()`, `Task._next_due_date()` | Completing a daily/weekly task spawns the next occurrence |
+| Plan generation | `Scheduler.generate_plan()`, `Scheduler.explain_plan()` | Greedy, priority-first fill under a time budget |
 
 ## 📸 Demo Walkthrough
 
