@@ -1,0 +1,50 @@
+classDiagram
+    %% PawPal+ system design — keep this file in sync with pawpal_system.py
+
+    class Owner {
+        +str name
+        +int available_minutes
+        +dict preferences
+        +list~Pet~ pets
+        +add_pet(pet)
+        +remove_pet(pet)
+        +get_pets()
+    }
+
+    class Pet {
+        +str name
+        +str species
+        +int age
+        +Owner owner
+        +list~Task~ tasks
+        +add_task(task)
+        +remove_task(task)
+        +get_tasks()
+    }
+
+    class Task {
+        +str name
+        +int duration
+        +int priority
+        +str category
+        +str preferred_time
+        +str recurring
+        +mark_done()
+        +is_recurring()
+        +next_occurrence()
+    }
+
+    class Scheduler {
+        +list~Task~ tasks
+        +int time_budget
+        +list~Task~ plan
+        +sort_tasks()
+        +detect_conflicts()
+        +generate_plan()
+        +explain_plan()
+    }
+
+    Owner "1" o-- "*" Pet : owns
+    Pet "1" o-- "*" Task : has
+    Scheduler ..> Task : schedules
+    Scheduler ..> Owner : reads time budget

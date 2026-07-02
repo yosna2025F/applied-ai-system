@@ -68,10 +68,12 @@ class Task:
 
     name: str
     duration: int
-    priority: int
+    priority: int  # higher int = more important (e.g. 1=low, 2=med, 3=high)
     category: str = ""
     preferred_time: str | None = None
     recurring: str | None = None
+    done: bool = False  # (#3) completion state that mark_done() flips
+    pet: "Pet | None" = None  # (#1) back-reference to the pet this task belongs to
 
     def mark_done(self) -> None:
         """Mark this task as completed for the day."""
@@ -89,9 +91,13 @@ class Task:
 class Scheduler:
     """Builds and explains a daily plan from tasks under a time budget."""
 
-    def __init__(self, tasks: list[Task], time_budget: int) -> None:
+    def __init__(self, tasks: list[Task], owner: Owner) -> None:
+        # (#2) take the Owner so the scheduler can read BOTH the time budget
+        # and the owner's preferences (an explicit constraint in the brief).
         self.tasks = tasks
-        self.time_budget = time_budget
+        self.owner = owner
+        self.time_budget = owner.available_minutes
+        self.preferences = owner.preferences
         self.plan: list[Task] = []
 
     def sort_tasks(self) -> list[Task]:
