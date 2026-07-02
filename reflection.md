@@ -69,6 +69,7 @@ import sys
 # Make the project root importable when running pytest from anywhere.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+st.session_state hard coded
 
 - How did you evaluate or verify what the AI suggested?
 
