@@ -40,6 +40,10 @@ I added a done field to Task. My stub had a mark_done() method but no attribute 
 - What constraints does your scheduler consider (for example: time, priority, preferences)?
 - How did you decide which constraints mattered most?
 
+
+My scheduler considers time (the owner's daily minute budget) and priority (importance, as an integer scale), and it avoids double-booking a preferred time slot. I decided time and priority mattered most because they're the core of the scenario, a busy owner with limited time needs the most important tasks to fit. I deliberately dropped owner-level preferences: I found my code was storing them but never using them, so rather than keep an unused constraint, I scoped the design down to what actually drives the plan.
+
+
 **b. Tradeoffs**
 
 - Describe one tradeoff your scheduler makes.
@@ -57,6 +61,15 @@ I added a done field to Task. My stub had a mark_done() method but no attribute 
 **b. Judgment and verification**
 
 - Describe one moment where you did not accept an AI suggestion as-is.
+
+
+import os
+import sys
+
+# Make the project root importable when running pytest from anywhere.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
 - How did you evaluate or verify what the AI suggested?
 
 ---

@@ -8,9 +8,9 @@ then prints today's schedule to the terminal. Run with:
 
 from pawpal_system import Owner, Pet, Task, Scheduler
 
-
+#Create a sample owner with two pets and several care tasks.
 def build_demo() -> Owner:
-    """Create a sample owner with two pets and several care tasks."""
+    
     owner = Owner("Jordan", available_minutes=120)
 
     # Two pets
