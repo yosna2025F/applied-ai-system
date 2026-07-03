@@ -4,7 +4,6 @@ classDiagram
     class Owner {
         +str name
         +int available_minutes
-        +dict preferences
         +list~Pet~ pets
         +add_pet(pet)
         +remove_pet(pet)
@@ -26,25 +25,38 @@ classDiagram
         +str name
         +int duration
         +int priority
-        +str category
         +str preferred_time
         +str recurring
-        +mark_done()
+        +date due_date
+        +bool complete
+        +Pet pet
+        +mark_complete()
         +is_recurring()
         +next_occurrence()
+        +priority_label()
+        -_next_instance()
+        -_next_due_date()
     }
 
     class Scheduler {
-        +list~Task~ tasks
+        +Owner owner
         +int time_budget
+        +list~Task~ tasks
         +list~Task~ plan
         +sort_tasks()
+        +sort_by_time()
+        +filter_tasks()
         +detect_conflicts()
+        +classify_conflicts()
+        +conflict_warning()
         +generate_plan()
         +explain_plan()
+        -_collect_tasks()
+        -_overlaps()
+        -_safe_overlaps()
     }
 
     Owner "1" o-- "*" Pet : owns
     Pet "1" o-- "*" Task : has
-    Scheduler ..> Task : schedules
     Scheduler ..> Owner : reads time budget
+    Scheduler ..> Task : schedules

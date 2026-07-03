@@ -115,12 +115,120 @@ classes). Each feature and the method(s) that implement it:
 
 ## 📸 Demo Walkthrough
 
-Describe your app in numbered steps so a reader can follow along without watching a video:
+### Main UI features
 
-1. <!-- Describe this step -->
-2. <!-- Describe this step -->
-3. <!-- Describe this step -->
-4. <!-- Describe this step -->
-5. <!-- Add more steps as needed -->
+The Streamlit app (`streamlit run app.py`) lets a pet owner:
+
+- **Set a time budget** — enter your name and the minutes you have available today; this is the constraint the scheduler plans against.
+- **Manage pets** — add pets (name, species, age) or remove one (which removes its tasks too).
+- **Manage tasks** — add a task to a chosen pet with a duration, priority (low/medium/high), optional preferred time, and optional repeat (daily/weekly).
+- **Filter the task list** — show tasks by pet and/or by status (pending vs. completed), displayed in a clean table.
+- **Mark tasks complete or remove them** — completed tasks drop out of the plan automatically; completing a recurring task rolls it over to its next occurrence.
+- **Generate a daily schedule** — see conflict warnings plus the prioritized, chronological plan for the day.
+
+### Example workflow
+
+1. **Add a pet** — enter "Mochi", species dog, age 3, and click **Add pet**.
+2. **Schedule tasks** — select Mochi, then add a "Morning walk" (30 min, high priority, preferred time 08:00, repeats daily) and a "Fetch" (15 min, low priority, no time). Add a second pet, Luna, with a "Medication" task (5 min, high, 12:00).
+3. **Review & filter** — the task table lists everything; filter to "Mochi" or to "Pending" to narrow it down.
+4. **View today's schedule** — click **Generate schedule**. PawPal+ flags any time conflicts, then shows the plan ordered by time with total minutes used and anything skipped.
+
+### Key Scheduler behaviors shown
+
+- **Sorting** — tasks are *selected* by priority (high → low, ties broken by shorter duration) but *displayed* chronologically by preferred time, with untimed tasks last.
+- **Filtering** — by pet and by completion status; the completed filter reaches tasks the planner otherwise skips.
+- **Conflict warnings** — overlapping timed tasks are flagged as either one pet double-booked or the owner needed by two pets at once (never crashing on bad time data).
+- **Budget-aware planning** — a greedy, priority-first fill keeps what fits within the time budget and reports what was skipped for time or overlap.
+- **Recurrence** — completing a daily/weekly task spawns its next occurrence.
+
+### Sample CLI output
+
+The same logic runs headless via `python main.py`, which builds a demo owner (Jordan, 60-min budget, two pets) and prints each behavior:
+
+========================================
+All pending tasks, sorted by time
+========================================
+  08:00  Morning walk (Mochi)
+  08:30  Breakfast (Mochi)
+  08:30  Feeding (Luna)
+  12:00  Medication (Luna)
+  18:00  Evening walk (Mochi)
+      —  Fetch (Mochi)
+
+========================================
+Filter: Mochi's tasks only
+========================================
+  Evening walk
+  Morning walk
+  Breakfast
+  Fetch
+
+========================================
+Filter: completed vs pending
+========================================
+  Completed: Litter cleanup
+  Pending:   Evening walk, Morning walk, Breakfast, Fetch, Medication, Feeding
+
+========================================
+Conflict check
+========================================
+⚠️  Schedule conflicts found:
+  - Breakfast (08:30) and Feeding (08:30) -- Mochi and Luna both need you
+
+========================================
+Today's Schedule
+========================================
+Daily plan for Jordan (time budget: 60 min):
+  1. Morning walk (Mochi) — 30 min, high priority at 08:00
+  2. Breakfast (Mochi) — 10 min, high priority at 08:30
+  3. Medication (Luna) — 5 min, high priority at 12:00
+  4. Fetch (Mochi) — 15 min, low priority
+Total scheduled: 60/60 min.
+Skipped (no time left or time overlap): Evening walk, Feeding.
+
+
+```
+$ python main.py
+========================================
+All pending tasks, sorted by time
+========================================
+  08:00  Morning walk (Mochi)
+  08:30  Breakfast (Mochi)
+  08:30  Feeding (Luna)
+  12:00  Medication (Luna)
+  18:00  Evening walk (Mochi)
+      —  Fetch (Mochi)
+
+========================================
+Filter: Mochi's tasks only
+========================================
+  Evening walk
+  Morning walk
+  Breakfast
+  Fetch
+
+========================================
+Filter: completed vs pending
+========================================
+  Completed: Litter cleanup
+  Pending:   Evening walk, Morning walk, Breakfast, Fetch, Medication, Feeding
+
+========================================
+Conflict check
+========================================
+⚠️  Schedule conflicts found:
+  - Breakfast (08:30) and Feeding (08:30) -- Mochi and Luna both need you
+
+========================================
+Today's Schedule
+========================================
+Daily plan for Jordan (time budget: 60 min):
+  1. Morning walk (Mochi) — 30 min, high priority at 08:00
+  2. Breakfast (Mochi) — 10 min, high priority at 08:30
+  3. Medication (Luna) — 5 min, high priority at 12:00
+  4. Fetch (Mochi) — 15 min, low priority
+Total scheduled: 60/60 min.
+Skipped (no time left or time overlap): Evening walk, Feeding.
+```
 
 **Screenshot or video** *(optional)*: <!-- Insert a screenshot or link to a demo video here -->
