@@ -63,16 +63,41 @@ Paste a sample of your app's CLI or Streamlit output here so a reader can see wh
 
 ```bash
 # Run the full test suite:
-pytest
+python -m pytest
 
 # Run with coverage:
 pytest --cov
 ```
 
+My tests cover the core PawPal+ behaviors: task completion, recurrence (daily tasks roll over to the next day, weekly advance seven days, one-off tasks don't), and the scheduling engine (budget limits, priority ordering, tie-breaking, overlap exclusion, and skipping completed tasks). They also verify conflict detection — including duplicate and adjacent times — and that tasks sort into chronological order, satisfying the three required behaviors of sorting, recurrence, and conflict detection.
+
 Sample test output:
 
 ```
-# Paste your pytest output here
+$ python -m pytest tests/test_pawpal.py -v
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-8.3.4, pluggy-1.5.0
+collected 17 items
+
+tests/test_pawpal.py::test_task_completion PASSED                        [  5%]
+tests/test_pawpal.py::test_task_addition_increases_count PASSED          [ 11%]
+tests/test_pawpal.py::test_recurring_task_rolls_over_on_complete PASSED  [ 17%]
+tests/test_pawpal.py::test_weekly_task_advances_seven_days PASSED        [ 23%]
+tests/test_pawpal.py::test_non_recurring_task_does_not_roll_over PASSED  [ 29%]
+tests/test_pawpal.py::test_classify_conflicts_same_and_cross_pet PASSED  [ 35%]
+tests/test_pawpal.py::test_conflict_warning_is_safe PASSED               [ 41%]
+tests/test_pawpal.py::test_generate_plan_enforces_time_budget PASSED     [ 47%]
+tests/test_pawpal.py::test_generate_plan_prefers_higher_priority PASSED  [ 52%]
+tests/test_pawpal.py::test_generate_plan_tie_breaks_by_shorter_duration PASSED [ 58%]
+tests/test_pawpal.py::test_generate_plan_excludes_overlapping_task PASSED [ 64%]
+tests/test_pawpal.py::test_generate_plan_is_greedy_not_optimal PASSED    [ 70%]
+tests/test_pawpal.py::test_generate_plan_ignores_completed_tasks PASSED  [ 76%]
+tests/test_pawpal.py::test_adjacent_tasks_do_not_conflict PASSED         [ 82%]
+tests/test_pawpal.py::test_detect_conflicts_raises_on_malformed_time PASSED [ 88%]
+tests/test_pawpal.py::test_sort_by_time_is_chronological PASSED          [ 94%]
+tests/test_pawpal.py::test_detect_conflicts_flags_duplicate_times PASSED [100%]
+
+============================== 17 passed in 0.03s ==============================
 ```
 
 ## 📐 Smarter Scheduling

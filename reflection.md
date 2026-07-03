@@ -49,6 +49,9 @@ My scheduler considers time (the owner's daily minute budget) and priority (impo
 - Describe one tradeoff your scheduler makes.
 - Why is that tradeoff reasonable for this scenario?
 
+My scheduler uses a greedy, priority-first algorithm rather than searching for the mathematically optimal set of tasks; this can occasionally keep a lower-priority task over a higher-priority one that didn't fit, but it's fast, predictable, easy to explain to the user, and more than sufficient for the small number of daily tasks a pet owner actually has.
+
+
 ---
 
 ## 3. AI Collaboration
