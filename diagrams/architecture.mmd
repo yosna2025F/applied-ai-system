@@ -1,0 +1,35 @@
+%% PawPal+ system architecture
+%% Data flow for a pet-care question: input -> guardrail -> retrieval ->
+%% generation -> self-check -> output, with logging and tests alongside.
+flowchart TD
+    User([User]) -->|question| Entry["app.py (UI) / main.py (CLI)"]
+    Entry --> Ask["Assistant.ask()"]
+
+    Ask --> Valid{"Empty or<br/>blank input?"}
+    Valid -->|yes| Invalid["status: invalid_input"]
+
+    Valid -->|no| Guard{"guardrail.check()"}
+    Guard -->|emergency| Emergency["Refuse + escalate to vet<br/>status: emergency"]
+    Guard -->|diagnosis| Diagnosis["Decline to diagnose<br/>status: diagnosis"]
+
+    Guard -->|clear| Retrieve["retriever.retrieve() top-k"]
+    KB[("knowledge_base/<br/>pet-care .md docs")] --> Retrieve
+    Retrieve --> Generate["generator.generate()<br/>cited draft answer"]
+
+    Generate --> Check{"Confidence ≥<br/>MIN_CONFIDENCE?"}
+    Check -->|no| Retry["Retry once with<br/>wider search (k=6)"]
+    Retry --> Recheck{"Still too low?"}
+    Recheck -->|yes| Abstain["Decline to guess<br/>status: abstained"]
+    Recheck -->|no| Answered
+    Check -->|yes| Answered["Answer + citations + confidence<br/>status: answered"]
+
+    Invalid --> Log
+    Emergency --> Log
+    Diagnosis --> Log
+    Abstain --> Log
+    Answered --> Log
+
+    Log[("logs/interactions.jsonl<br/>structured audit log")] --> Response([Response to user])
+
+    Tests["tests/ (pytest)<br/>retriever, guardrail,<br/>generator, assistant"] -.->|validates| Ask
+    Human["Human review<br/>evaluation table"] -.->|checks answers| Answered
