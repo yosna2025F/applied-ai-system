@@ -3,6 +3,7 @@ from datetime import time
 import streamlit as st
 
 from pawpal_system import Owner, Pet, Task, Scheduler
+from assistant import Assistant, format_response
 
 st.set_page_config(page_title="PawPal+", page_icon="🐾", layout="centered")
 
@@ -16,6 +17,12 @@ if "owner" not in st.session_state:
 
 # Grab the persistent instance for the rest of the script to use.
 owner = st.session_state.owner
+
+# Build the RAG assistant once per session. Its constructor indexes the
+# knowledge base, so caching it in session_state avoids re-reading the docs on
+# every Streamlit rerun.
+if "assistant" not in st.session_state:
+    st.session_state.assistant = Assistant()
 
 st.title("🐾 PawPal+")
 
@@ -35,6 +42,41 @@ with st.expander("How the schedule works"):
 - The plan is shown **chronologically**, and anything that didn't fit is listed as skipped.
 """
     )
+
+st.divider()
+
+# --- AI feature: the RAG assistant, integrated as a first-class part of the app. ---
+st.subheader("💬 Ask PawPal")
+st.caption(
+    "Ask a general pet-care question. PawPal+ retrieves the answer from its "
+    "curated knowledge base and cites its sources. It refuses emergencies and "
+    "diagnosis requests, pointing you to a vet, and declines to guess when it "
+    "has no good source."
+)
+
+with st.form("ask_form", clear_on_submit=False):
+    question = st.text_input(
+        "Your question",
+        placeholder="e.g. How often should I feed my puppy?",
+    )
+    asked = st.form_submit_button("Ask")
+
+if asked and question.strip():
+    # Route the question through the full guarded, self-checking RAG loop and
+    # branch the display on the single status field it returns.
+    response = st.session_state.assistant.ask(question)
+    if response.status == "emergency":
+        st.error(response.answer)
+    elif response.status == "diagnosis":
+        st.warning(response.answer)
+    elif response.status == "abstained":
+        st.info(format_response(response))
+    else:  # answered
+        st.success(response.answer)
+        st.caption(f"Confidence: {response.confidence:.2f}")
+        st.caption("Sources: " + "; ".join(response.citations))
+elif asked:
+    st.info("Please type a question first.")
 
 st.divider()
 

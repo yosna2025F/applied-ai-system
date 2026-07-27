@@ -6,6 +6,7 @@ then prints today's schedule to the terminal. Run with:
     python main.py
 """
 
+from assistant import Assistant, format_response
 from pawpal_system import Owner, Pet, Task, Scheduler
 
 #Create a sample owner with two pets and several care tasks.
@@ -95,6 +96,24 @@ def main() -> None:
     print("=" * 40)
     scheduler.generate_plan()
     print(scheduler.explain_plan())
+
+    # 6. The AI feature: ask PawPal+ a few pet-care questions. Each runs through
+    #    the guarded, self-checking RAG loop in assistant.py, showing a grounded
+    #    answer, a safety refusal, and a low-confidence abstention in turn.
+    print()
+    print("=" * 40)
+    print("Ask PawPal+ (RAG assistant)")
+    print("=" * 40)
+    assistant = Assistant()
+    for question in [
+        "How often should I feed my puppy?",
+        "My dog is choking, what should I do?",
+        "What is the capital of France?",
+    ]:
+        response = assistant.ask(question)
+        print(f"\nQ: {question}")
+        print(f"[{response.status}]")
+        print(format_response(response))
 
 
 if __name__ == "__main__":
