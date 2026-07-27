@@ -1,23 +1,13 @@
-"""PawPal+ safety guardrail.
+"""Screen questions for cases that must not be answered normally.
 
-This layer runs BEFORE the assistant answers a pet-care question. Its job is to
-catch the two kinds of question the system must never try to handle like a
-normal lookup:
+Catches two categories and returns a ready-to-show message instead of an
+answer:
+  * emergency -- signs that need urgent veterinary care (choking, seizures,
+    suspected poisoning, heavy bleeding, ...).
+  * diagnosis -- requests to name a disease or recommend medication.
 
-  * EMERGENCY -- signs that need a vet right now (choking, seizures, suspected
-    poisoning, heavy bleeding, ...). The system stops and tells the user to get
-    immediate care instead of offering home advice.
-  * DIAGNOSIS -- the user is asking the system to name a disease or decide
-    what is medically wrong ("does my dog have cancer?"). PawPal+ is not a vet
-    and must not diagnose, so it declines and points the user to one.
-
-Design decisions:
-  * Keyword/phrase matching on the lowercased question. It is transparent, needs
-    no model, and errs on the side of caution -- for a safety check, a false
-    alarm (telling someone to see a vet when they did not strictly need to) is
-    far cheaper than a miss.
-  * The guardrail only decides WHETHER to intervene and returns a ready-to-show
-    message; it never generates care advice itself.
+Matching is done with keyword/phrase checks on the lowercased question, erring
+toward caution.
 """
 
 from __future__ import annotations

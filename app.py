@@ -18,9 +18,9 @@ if "owner" not in st.session_state:
 # Grab the persistent instance for the rest of the script to use.
 owner = st.session_state.owner
 
-# Build the RAG assistant once per session. Its constructor indexes the
-# knowledge base, so caching it in session_state avoids re-reading the docs on
-# every Streamlit rerun.
+# Build the assistant once per session. Its constructor indexes the knowledge
+# base, so caching it in session_state avoids re-reading the docs on every
+# Streamlit rerun.
 if "assistant" not in st.session_state:
     st.session_state.assistant = Assistant()
 
@@ -45,7 +45,6 @@ with st.expander("How the schedule works"):
 
 st.divider()
 
-# --- AI feature: the RAG assistant, integrated as a first-class part of the app. ---
 st.subheader("💬 Ask PawPal")
 st.caption(
     "Ask a general pet-care question. PawPal+ retrieves the answer from its "
@@ -62,8 +61,8 @@ with st.form("ask_form", clear_on_submit=False):
     asked = st.form_submit_button("Ask")
 
 if asked and question.strip():
-    # Route the question through the full guarded, self-checking RAG loop and
-    # branch the display on the single status field it returns.
+    # Route the question through the assistant and branch the display on the
+    # single status field it returns.
     response = st.session_state.assistant.ask(question)
     if response.status == "emergency":
         st.error(response.answer)

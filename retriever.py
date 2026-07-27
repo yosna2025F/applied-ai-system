@@ -1,21 +1,8 @@
-"""PawPal+ retrieval layer.
+"""Search over the pet-care knowledge base.
 
-This is the "R" in the RAG pipeline: it finds the most relevant pieces of the
-pet-care knowledge base for a user's question so the generator can answer FROM
-those sources instead of from the model's general knowledge.
-
-Design decisions:
-  * Pure standard library (no numpy, no vector database, no API). The corpus is
-    small and this keeps the project reproducible -- anyone can clone and run it
-    with no extra install and no network access.
-  * Documents are split into paragraph-sized chunks so a retrieved passage is
-    focused enough to cite, not a whole file.
-  * Ranking uses classic TF-IDF vectors compared by cosine similarity. TF-IDF
-    rewards words that are distinctive to a chunk (e.g. "heartworm") and
-    down-weights words common to every chunk (e.g. "pet"), which is a good fit
-    for keyword-style care questions.
-  * Retrieval is deterministic: the same query always returns the same chunks in
-    the same order, which is what makes the reliability tests meaningful.
+Loads the markdown documents in ``knowledge_base/``, splits them into
+paragraph-sized chunks, and ranks chunks against a query using TF-IDF vectors
+compared by cosine similarity. Pure standard library, no external services.
 """
 
 from __future__ import annotations
@@ -112,10 +99,8 @@ class Retriever:
     def __init__(self, kb_dir: Path | str = KB_DIR) -> None:
         """Load and index every markdown document under ``kb_dir``.
 
-        Raises ``FileNotFoundError`` if the knowledge-base directory is missing
-        or empty, because a RAG system with nothing to retrieve is a
-        misconfiguration the caller should hear about immediately, not a silent
-        empty result.
+        Raises ``FileNotFoundError`` if the directory is missing or holds no
+        documents, rather than returning silent empty results.
         """
         self.kb_dir = Path(kb_dir)
         self.chunks = self._load_chunks()
@@ -207,9 +192,7 @@ class Retriever:
         """Return the ``k`` most relevant chunks for ``query``, best first.
 
         Chunks that share no meaningful terms with the query (score 0.0) are
-        dropped rather than padded in, so a totally off-topic question returns
-        an empty list -- a signal the generator and guardrail use to say "I don't
-        have a source for that" instead of inventing an answer.
+        dropped, so a totally off-topic question returns an empty list.
         """
         query_vector = self._tfidf(Counter(_tokenize(query)))
         scored = [

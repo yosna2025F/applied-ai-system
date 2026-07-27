@@ -1,22 +1,12 @@
-"""PawPal+ assistant: the agentic RAG orchestrator.
+"""Orchestrate the question-answering loop.
 
-This module is where the AI feature is "fully integrated" -- it wires the
-retriever, guardrail, and generator into a single plan -> act -> check loop and
-is the one entry point the UI and tests call.
-
-The loop for every question:
-  1. PLAN  -- run the safety guardrail first. If it fires, stop and return the
-              safety message; never retrieve or answer.
-  2. ACT   -- retrieve the top-k passages and generate a grounded draft answer.
-  3. CHECK -- the self-verification step: is the draft actually supported by the
-              sources (retrieval confidence above threshold)? If it is too weak,
-              retry once with a wider search; if it is still weak, ABSTAIN and
-              say so rather than guess.
-  4. LOG   -- append a structured record of what happened (query, decision,
-              confidence, sources, guardrail status) for auditing and testing.
-
-Every path returns a ``Response``, and every path is logged, so the system's
-behavior is fully traceable.
+Wires the retriever, guardrail, and generator together behind a single ``ask``
+entry point used by the UI and the CLI. For each question it:
+  1. runs the safety guardrail and stops if it fires;
+  2. retrieves the top-k passages and generates a draft answer;
+  3. checks the draft's confidence, retrying once with a wider search and
+     abstaining if it is still too low;
+  4. appends a structured record of the outcome to the log.
 """
 
 from __future__ import annotations
@@ -63,7 +53,7 @@ class Response:
 
 
 class Assistant:
-    """Runs the guarded, self-checking RAG loop for pet-care questions.
+    """Answers pet-care questions through the guarded, self-checking loop.
 
     Build one and reuse it: the retriever indexes the knowledge base once in
     ``__init__``. ``ask`` is the single public entry point.
@@ -110,7 +100,7 @@ class Assistant:
             self._log(response)
             return response
 
-        # --- 2. ACT: retrieve, then generate a grounded draft. ---
+        # --- 2. ACT: retrieve, then generate a draft answer. ---
         retrieved = self.retriever.retrieve(question, k=3)
         draft = generate(question, retrieved)
 

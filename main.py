@@ -97,12 +97,12 @@ def main() -> None:
     scheduler.generate_plan()
     print(scheduler.explain_plan())
 
-    # 6. The AI feature: ask PawPal+ a few pet-care questions. Each runs through
-    #    the guarded, self-checking RAG loop in assistant.py, showing a grounded
-    #    answer, a safety refusal, and a low-confidence abstention in turn.
+    # 6. Ask PawPal+ a few pet-care questions. Each runs through the guarded,
+    #    self-checking loop in assistant.py, showing an answer, a safety refusal,
+    #    and a low-confidence abstention in turn.
     print()
     print("=" * 40)
-    print("Ask PawPal+ (RAG assistant)")
+    print("Ask PawPal+")
     print("=" * 40)
     assistant = Assistant()
     for question in [

@@ -1,22 +1,8 @@
-"""PawPal+ answer generator (offline, extractive).
+"""Build a short, cited answer from retrieved passages.
 
-This is the "generation" half of the RAG pipeline. With no LLM available, it
-still answers FROM the retrieved sources rather than from general knowledge by
-doing extractive summarization: it pulls the individual sentences in the
-retrieved passages that best match the question and stitches them into a short,
-cited answer.
-
-Why extractive instead of a language model:
-  * Fully offline and reproducible -- no API key, no network, deterministic
-    output, which is exactly what the reliability tests need.
-  * The answer is provably grounded: every sentence it returns physically comes
-    from a knowledge-base document, so it cannot hallucinate facts that are not
-    in the corpus. It "meaningfully processes" the retrieved data by selecting
-    and ordering the relevant sentences, not by printing whole documents.
-
-The generator does NOT decide whether the answer is trustworthy -- it just
-produces the best grounded draft and reports its confidence. The assistant's
-self-check layer makes the keep/abstain decision.
+Selects the sentences in the retrieved chunks that best match the query and
+joins them into a brief answer, recording which sources were used and carrying
+the top retrieval score through as a confidence value.
 """
 
 from __future__ import annotations
@@ -33,7 +19,7 @@ MAX_SENTENCES = 4
 
 @dataclass
 class Answer:
-    """A grounded draft answer and the evidence behind it.
+    """A draft answer and the evidence behind it.
 
     ``text`` is the answer shown to the user. ``citations`` lists the unique
     "source > heading" locations the sentences came from. ``confidence`` is the
@@ -89,8 +75,7 @@ def generate(query: str, retrieved: list[RetrievedChunk]) -> Answer:
     Scores every sentence in the retrieved chunks by how many query words it
     shares (breaking ties toward higher-ranked chunks), keeps the best few in
     their original reading order, and records which sources were used. Returns an
-    empty-text ``Answer`` when nothing was retrieved, so the caller can abstain
-    cleanly instead of fabricating a response.
+    empty-text ``Answer`` when nothing was retrieved, so the caller can abstain.
     """
     if not retrieved:
         return Answer(text="", confidence=0.0)
