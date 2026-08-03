@@ -19,10 +19,41 @@ KB_DIR = Path(__file__).parent / "knowledge_base"
 # Extremely common words carry no topical signal, so they are dropped before
 # scoring. Kept deliberately short -- TF-IDF already down-weights common words.
 STOPWORDS = {
-    "a", "an", "and", "are", "as", "at", "be", "but", "by", "can", "do", "for",
-    "from", "how", "in", "is", "it", "its", "my", "of", "on", "or", "should",
-    "that", "the", "their", "them", "then", "there", "this", "to", "up", "was",
-    "what", "when", "which", "who", "why", "with", "you", "your",
+    "a", "an", "and", "are", "as", "at", "be", "but", "by", "can", "do", "does",
+    "for", "from", "how", "i", "in", "is", "it", "its", "me", "my", "of", "on",
+    "or", "our", "should", "that", "the", "their", "them", "then", "there",
+    "this", "to", "up", "us", "was", "we", "what", "when", "which", "who", "why",
+    "with", "you", "your",
+}
+
+
+# Irregular word forms the crude suffix stemmer cannot unify on its own, mapped
+# to a shared root so a query using one form matches a document using another
+# (e.g. the verb "bathe" and the noun "bath"). Each entry maps an exact word, so
+# there is no risk of accidentally collapsing unrelated words. Extend as needed.
+NORMALIZE = {
+    "bathe": "bath",
+    "bathes": "bath",
+    "bathed": "bath",
+    "peeing": "urinate",
+    "pee": "urinate",
+    "poop": "stool",
+    "vet": "veterinarian",
+    "shots": "vaccination",
+    "shot": "vaccination",
+    # Food vocabulary: the feeding document speaks of "feed"/"food", but users
+    # ask about "eat"/"diet". Collapse all of these to one root so a question
+    # like "what should my dog eat" reaches feeding.md instead of the symptoms
+    # doc, where "not eating" happens to share the word.
+    "eat": "feed",
+    "eats": "feed",
+    "eating": "feed",
+    "ate": "feed",
+    "food": "feed",
+    "foods": "feed",
+    "fed": "feed",
+    "diet": "feed",
+    "diets": "feed",
 }
 
 
@@ -58,7 +89,7 @@ def _tokenize(text: str) -> list[str]:
     different forms of the same word match.
     """
     words = re.findall(r"[a-z0-9]+", text.lower())
-    return [_stem(w) for w in words if w not in STOPWORDS]
+    return [_stem(NORMALIZE.get(w, w)) for w in words if w not in STOPWORDS]
 
 
 @dataclass
@@ -112,6 +143,10 @@ class Retriever:
         # Per-chunk token frequency counts, computed once and reused.
         self._chunk_tokens = [Counter(_tokenize(c.text)) for c in self.chunks]
         self._idf = self._compute_idf()
+        # The rarest term's weight, used as the weight for out-of-vocabulary query
+        # words (a word absent from the whole corpus is at least as distinctive as
+        # the rarest word we have seen).
+        self._max_idf = max(self._idf.values())
         # Pre-compute each chunk's TF-IDF vector so queries only vectorize once.
         self._chunk_vectors = [self._tfidf(tokens) for tokens in self._chunk_tokens]
 
@@ -202,6 +237,46 @@ class Retriever:
         scored = [rc for rc in scored if rc.score > 0.0]
         scored.sort(key=lambda rc: rc.score, reverse=True)
         return scored[:k]
+
+    def query_coverage(self, query: str, text: str) -> float:
+        """Return the share of the query's "meaning weight" that ``text`` covers.
+
+        Each query word is weighted by how distinctive it is (its IDF), and words
+        absent from the whole corpus are treated as maximally distinctive. The
+        result is the fraction of that total weight whose words actually appear in
+        ``text``. A low value means the passage matched only the query's common,
+        generic words and missed its distinctive topic word -- the signature of an
+        answer that shares words with the question but is off-topic. Returns 1.0
+        for an empty query (nothing to miss).
+        """
+        query_terms = set(_tokenize(query))
+        if not query_terms:
+            return 1.0
+        text_terms = set(_tokenize(text))
+        total = sum(self._idf.get(term, self._max_idf) for term in query_terms)
+        covered = sum(
+            self._idf.get(term, self._max_idf)
+            for term in query_terms
+            if term in text_terms
+        )
+        return covered / total if total else 1.0
+
+    def missing_key_term(self, query: str) -> bool:
+        """True if the query's most distinctive word is absent from the corpus.
+
+        The query's meaning is carried by its rarest word; unknown words are the
+        rarest of all. If that most-distinctive word never appears in any
+        document, the knowledge base simply has no content for the topic (e.g.
+        "sleep" or "biting"), and coverage of the query's generic words alone
+        should not be trusted. Returns False for an empty query.
+        """
+        query_terms = set(_tokenize(query))
+        if not query_terms:
+            return False
+        # Unknown words get a weight just above the rarest known word, so an
+        # out-of-vocabulary word always ranks as the most distinctive term.
+        key_term = max(query_terms, key=lambda t: self._idf.get(t, self._max_idf + 1))
+        return key_term not in self._idf
 
 
 if __name__ == "__main__":

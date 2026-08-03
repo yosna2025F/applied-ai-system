@@ -13,6 +13,11 @@ system is fully offline and deterministic. Before answering, a guardrail screens
 for emergencies and diagnosis requests, and a confidence check makes the system
 abstain rather than guess when no source is a strong match.
 
+PawPal+ also includes the original deterministic scheduler carried over from the
+base project. That component is rule-based logic with no model, training data, or
+learned behavior, so it is out of scope for this model card; its design and
+testing are covered in [`reflection.md`](reflection.md).
+
 ## Intended Use
 
 - **Intended:** general, non-urgent pet-care information (feeding, exercise,

@@ -41,7 +41,7 @@ def _split_sentences(text: str) -> list[str]:
     prose lines are joined back together and then split on sentence-ending
     punctuation, while bullet lines (starting with "-") are kept as their own
     items so lists like the emergency checklist survive intact. Markdown heading
-    lines ("## ...") are dropped -- they are labels, not answer content.
+    lines ("## ...") are dropped, they are labels, not answer content.
     """
     sentences: list[str] = []
     paragraph: list[str] = []

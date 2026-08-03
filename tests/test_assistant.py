@@ -11,7 +11,7 @@ import re
 import pytest
 
 import guardrail
-from assistant import MIN_CONFIDENCE, Assistant, format_response
+from assistant import MIN_CONFIDENCE, MIN_COVERAGE, Assistant, format_response
 from generator import generate
 from retriever import Retriever
 
@@ -62,6 +62,30 @@ def test_retriever_is_deterministic(retriever):
 
     assert [r.chunk.text for r in first] == [r.chunk.text for r in second]
     assert [r.score for r in first] == [r.score for r in second]
+
+
+# ---------------------------------------------------------------------------
+# Topic coverage (the fail-safe signal)
+# ---------------------------------------------------------------------------
+
+# A passage that covers the query's distinctive words scores high coverage.
+def test_query_coverage_high_for_on_topic(retriever):
+    top = retriever.retrieve("what foods are toxic to dogs?", k=1)[0].chunk.text
+
+    assert retriever.query_coverage("what foods are toxic to dogs?", top) > MIN_COVERAGE
+
+
+# A query whose topic word is absent from the corpus scores low coverage, even
+# when generic words ("puppy") still match.
+def test_query_coverage_low_when_topic_absent(retriever):
+    top = retriever.retrieve("how do I stop my puppy from biting", k=1)[0].chunk.text
+
+    assert retriever.query_coverage("how do I stop my puppy from biting", top) < MIN_COVERAGE
+
+
+# An empty query has no terms to miss, so coverage is defined as full.
+def test_query_coverage_empty_query_is_full(retriever):
+    assert retriever.query_coverage("", "any text at all") == 1.0
 
 
 # ---------------------------------------------------------------------------
@@ -165,6 +189,23 @@ def test_assistant_abstains_when_off_topic(assistant):
 
     assert response.status == "abstained"
     assert response.answer == ""
+
+
+# A question whose topic is absent from the knowledge base is declined by the
+# coverage fail-safe, even though generic words like "puppy" still match a passage.
+def test_assistant_abstains_when_topic_not_covered(assistant):
+    response = assistant.ask("how do I stop my puppy from biting")
+
+    assert response.status == "abstained"
+    assert response.coverage < MIN_COVERAGE
+
+
+# A question the knowledge base does cover clears the coverage bar and is answered.
+def test_assistant_answers_when_topic_is_covered(assistant):
+    response = assistant.ask("how long should I walk my dog?")
+
+    assert response.status == "answered"
+    assert response.coverage >= MIN_COVERAGE
 
 
 # Empty and whitespace-only input is handled without crashing.

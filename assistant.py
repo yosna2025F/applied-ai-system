@@ -29,6 +29,15 @@ MIN_CONFIDENCE = 0.05
 # before giving up -- a wider net sometimes surfaces a passage the top-k missed.
 RETRY_K = 6
 
+# Minimum share of the query's distinctive-word "meaning weight" the top passage
+# must cover to be trusted. Below this, the passage matched only generic words
+# and probably missed the topic, so the assistant abstains rather than answer
+# off-topic. Set conservatively: it abstains only when the topic is essentially
+# absent from the knowledge base, preserving correct answers. Raise it to abstain
+# more aggressively (0.5 also catches some off-topic answers at the cost of a few
+# correct ones).
+MIN_COVERAGE = 0.33
+
 # Where structured run logs are appended, relative to this file.
 LOG_PATH = Path(__file__).parent / "logs" / "interactions.jsonl"
 
@@ -47,6 +56,7 @@ class Response:
     answer: str = ""
     citations: list[str] = field(default_factory=list)
     confidence: float = 0.0
+    coverage: float = 0.0
     sources: list[str] = field(default_factory=list)
     guardrail_category: str = ""
     note: str = ""
@@ -110,14 +120,29 @@ class Assistant:
             retrieved = self.retriever.retrieve(question, k=RETRY_K)
             draft = generate(question, retrieved)
 
-        if not draft.text or draft.confidence < MIN_CONFIDENCE:
+        # Topic-coverage check: does the top passage actually cover the query's
+        # distinctive words, or did it only match generic ones? This catches
+        # answers that share words with the question but are off-topic. The
+        # companion check catches queries whose distinctive word is missing from
+        # the knowledge base entirely (which high coverage of generic words hides).
+        top_text = retrieved[0].chunk.text if retrieved else ""
+        coverage = self.retriever.query_coverage(question, top_text)
+        topic_missing = self.retriever.missing_key_term(question)
+
+        if (
+            not draft.text
+            or draft.confidence < MIN_CONFIDENCE
+            or coverage < MIN_COVERAGE
+            or topic_missing
+        ):
             response = Response(
                 question=question,
                 status="abstained",
                 confidence=round(draft.confidence, 4),
+                coverage=round(coverage, 4),
                 note=(
-                    "No knowledge-base passage was a strong enough match, so "
-                    "PawPal+ declined to answer rather than guess."
+                    "No knowledge-base passage covered the question's key terms "
+                    "well enough, so PawPal+ declined to answer rather than guess."
                 ),
             )
             self._log(response)
@@ -130,6 +155,7 @@ class Assistant:
             answer=draft.text,
             citations=draft.citations,
             confidence=round(draft.confidence, 4),
+            coverage=round(coverage, 4),
             sources=draft.used_sources,
         )
         self._log(response)
